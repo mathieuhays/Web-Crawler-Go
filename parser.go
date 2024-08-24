@@ -1,15 +1,22 @@
 package main
 
 import (
+	"fmt"
 	"golang.org/x/net/html"
+	"log"
 	"net/url"
 	"strings"
 )
 
 func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
+	baseURL, err := url.Parse(rawBaseURL)
+	if err != nil {
+		return []string{}, fmt.Errorf("could not parse base url: %s", err)
+	}
+
 	doc, err := html.Parse(strings.NewReader(htmlBody))
 	if err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("could not parse HTML: %s", err)
 	}
 
 	var urls []string
@@ -18,22 +25,19 @@ func getURLsFromHTML(htmlBody, rawBaseURL string) ([]string, error) {
 		if n.Type == html.ElementNode && n.Data == "a" {
 			for _, a := range n.Attr {
 				if a.Key == "href" {
-					rawURL := strings.TrimSpace(a.Val)
-					if rawURL == "" {
+					rawHref := strings.TrimSpace(a.Val)
+					if rawHref == "" {
 						continue
 					}
 
-					linkURL, err := url.Parse(rawURL)
+					href, err := url.Parse(rawHref)
 					if err != nil {
+						log.Printf("could not parse href '%v': %v\n", a.Val, err)
 						continue
 					}
-					finalUrl := a.Val
 
-					if linkURL.Hostname() == "" {
-						finalUrl = rawBaseURL + "/" + strings.TrimLeft(finalUrl, "/")
-					}
-
-					urls = append(urls, finalUrl)
+					resolvedURL := baseURL.ResolveReference(href)
+					urls = append(urls, resolvedURL.String())
 				}
 			}
 		}
