@@ -15,17 +15,19 @@ func run(args []string, out io.Writer) error {
 	}
 
 	url := args[1]
-	if _, err := fmt.Fprintf(out, "starting crawl of: %s", url); err != nil {
+	if _, err := fmt.Fprintf(out, "starting crawl of: %s\n", url); err != nil {
 		return err
 	}
 
-	rawHTML, err := getHTML(url)
-	if err != nil {
-		return err
+	pages := map[string]int{}
+	crawlPage(url, url, pages)
+
+	if len(pages) == 0 {
+		_, _ = fmt.Fprintf(out, "Nothing to show for %q\n", url)
 	}
 
-	if _, err = fmt.Fprintln(out, rawHTML); err != nil {
-		return err
+	for u, count := range pages {
+		_, _ = fmt.Fprintf(out, "%q: %d\n", u, count)
 	}
 
 	return nil
