@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
+	"time"
 )
 
 func run(args []string, out io.Writer) error {
@@ -14,21 +16,27 @@ func run(args []string, out io.Writer) error {
 		return errors.New("too many arguments provided")
 	}
 
+	start := time.Now()
+
 	url := args[1]
 	if _, err := fmt.Fprintf(out, "starting crawl of: %s\n", url); err != nil {
 		return err
 	}
 
-	pages := map[string]int{}
-	crawlPage(url, url, pages)
+	c := newCrawler(url, log.New(out, "crawler: ", log.LstdFlags))
+	c.crawlPage(url)
 
-	if len(pages) == 0 {
-		_, _ = fmt.Fprintf(out, "Nothing to show for %q\n", url)
+	c.wg.Wait()
+
+	if len(c.pages) == 0 {
+		_, _ = fmt.Fprintln(out, "no urls found")
 	}
 
-	for u, count := range pages {
-		_, _ = fmt.Fprintf(out, "%q: %d\n", u, count)
+	for u, count := range c.pages {
+		_, _ = fmt.Fprintf(out, "%s: %d\n", u, count)
 	}
+
+	_, _ = fmt.Fprintf(out, "Execution time %s\n", time.Since(start))
 
 	return nil
 }
