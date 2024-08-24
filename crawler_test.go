@@ -31,7 +31,7 @@ func TestCrawler(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	c := newCrawler(ts.URL, log.New(os.Stdout, "", log.LstdFlags))
+	c := newCrawler(ts.URL, 1, 0, log.New(os.Stdout, "", log.LstdFlags))
 	c.crawlPage(ts.URL)
 	c.wg.Wait()
 

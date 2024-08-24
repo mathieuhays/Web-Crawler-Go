@@ -47,13 +47,9 @@ func run(args []string, out io.Writer) error {
 
 	c.wg.Wait()
 
-	if len(c.pages) == 0 {
-		_, _ = fmt.Fprintln(out, "no urls found")
-	}
-
-	for u, count := range c.pages {
-		_, _ = fmt.Fprintf(out, "%s: %d\n", u, count)
-	}
+	r := newReport(c.pages, url)
+	r.sort()
+	r.print(out)
 
 	_, _ = fmt.Fprintf(out, "Execution time %s. Total Queries: %d\n", time.Since(start), c.totalQueries)
 
