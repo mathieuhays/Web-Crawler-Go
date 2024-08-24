@@ -6,8 +6,6 @@ import (
 	"sync"
 )
 
-const maxConcurrency = 5
-
 type crawler struct {
 	pages              map[string]int
 	baseURL            string
@@ -15,9 +13,11 @@ type crawler struct {
 	concurrencyControl chan struct{}
 	wg                 *sync.WaitGroup
 	logger             *log.Logger
+	maxPages           int
+	totalQueries       int
 }
 
-func newCrawler(baseURL string, logger *log.Logger) *crawler {
+func newCrawler(baseURL string, maxConcurrency, limit int, logger *log.Logger) *crawler {
 	return &crawler{
 		pages:              map[string]int{},
 		baseURL:            baseURL,
@@ -25,6 +25,8 @@ func newCrawler(baseURL string, logger *log.Logger) *crawler {
 		concurrencyControl: make(chan struct{}, maxConcurrency),
 		wg:                 &sync.WaitGroup{},
 		logger:             logger,
+		maxPages:           limit,
+		totalQueries:       0,
 	}
 }
 
@@ -57,6 +59,21 @@ func (c *crawler) crawlPage(rawCurrentURL string) {
 		c.logger.Printf("executing goroutine: %q\n", rawCurrentURL)
 
 		c.logger.Printf("querying %q\n", rawCurrentURL)
+
+		c.mu.Lock()
+		queryCount := c.totalQueries
+		c.mu.Unlock()
+
+		if c.maxPages > 0 {
+			if queryCount >= c.maxPages {
+				c.logger.Println("reached page limit. skipping.")
+				return
+			}
+		}
+
+		c.mu.Lock()
+		c.totalQueries++
+		c.mu.Unlock()
 
 		rawHTML, err := getHTML(rawCurrentURL)
 		if err != nil {
