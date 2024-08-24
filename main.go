@@ -19,6 +19,15 @@ func run(args []string, out io.Writer) error {
 		return err
 	}
 
+	rawHTML, err := getHTML(url)
+	if err != nil {
+		return err
+	}
+
+	if _, err = fmt.Fprintln(out, rawHTML); err != nil {
+		return err
+	}
+
 	return nil
 }
 
